@@ -8,10 +8,19 @@ A multi-threaded fractal generator that demonstrates the following:
 - AVX (modern version of SSE) vector instructions and their use
 - Simple usage of X Windows: create and draw in a window
 
+The fractal generation algorithm is implemented entirely in amd64
+assembly language. It computes the escape values for a Mandelbrot
+set 8 points at a time, using the AVX vector extensions that allow
+a 256 bit block of 8 conventional IEEE float values at a time.
+
+Meanwhile, the image is divided up into sectors based on the number
+of hardware threads your system supports, and this activity is
+parrallelized up to the limits of your hardware concurrency.
+
 Requirements:
 
 - X11 development library (libx11-dev on a Debian system)
-- NASM
+- NASM (sudo apt-get install nasm)
 
 How to use:
 
