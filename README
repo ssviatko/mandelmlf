@@ -1,4 +1,5 @@
 Mandelmlf
+By Stephen Sviatko
 
 A multi-threaded fractal generator that demonstrates the following:
 
@@ -14,6 +15,10 @@ Requirements:
 
 How to use:
 
+Pass width and height arguments (optionally) to change window size.
 Left-click to recenter image.
 Scroll wheel to zoom in and out.
+
+If you zoomed in somewhere and the calculation gets intensive, be patient.
+Smaller window sizes == faster speed.
 
