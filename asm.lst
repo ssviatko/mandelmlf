@@ -1,0 +1,231 @@
+     1                                  	global iterate8 
+     2                                  
+     3                                  	section .text
+     4                                  
+     5                                  iterate8:
+     6 00000000 53                      	push rbx
+     7 00000001 55                      	push rbp
+     8 00000002 4889E5                  	mov rbp, rsp
+     9 00000005 4883EC60                	sub rsp, 96
+    10                                  
+    11 00000009 4989F8                  	mov r8, rdi			;Save our pointer to cr's
+    12 0000000C 4989F1                  	mov r9, rsi			;Save our pointer to ci's
+    13                                  
+    14 0000000F C4C17C1000              	vmovups ymm0, [r8]
+    15 00000014 C4C17C1009              	vmovups ymm1, [r9]		;Load up C's
+    16 00000019 48BB-                   	mov rbx, const_0
+    16 0000001B [0000000000000000] 
+    17 00000023 C5FC2813                	vmovaps ymm2, [rbx]		;zr = 0
+    18 00000027 C5FC28DA                	vmovaps ymm3, ymm2		;zi = 0
+    19 0000002B C5FC28E2                	vmovaps ymm4, ymm2		;Set up zr^2
+    20 0000002F C5FC28EB                	vmovaps ymm5, ymm3		;set up zi^2
+    21 00000033 48BB-                   	mov rbx, const_2
+    21 00000035 [2000000000000000] 
+    22 0000003D C5FC2833                	vmovaps ymm6, [rbx]		;Load up 2's
+    23                                  	
+    24 00000041 4989D2                  	mov r10, rdx			;Get our max_iterations
+    25 00000044 4989CC                  	mov r12, rcx			;Get our pointer to itertbl to fill
+    26                                  
+    27 00000047 B908000000              	mov rcx, 8
+    28 0000004C 48C7C0FFFFFFFF          	mov rax, -1
+    29 00000053 4889EF                  	mov rdi, rbp
+    30 00000056 4883EF60                	sub rdi, 96 
+    31 0000005A F348AB                  	rep stosq			;-1 placeholders in iterations table
+    32                                  
+    33 0000005D B900000000              	mov rcx, 0			;set up iterations count
+    34                                  cycle:
+    35 00000062 C56459C6                	vmulps ymm8, ymm3, ymm6		; zi * 2
+    36 00000066 C53C59CA                	vmulps ymm9, ymm8, ymm2		; * zr
+    37 0000006A C5B458D9                	vaddps ymm3, ymm9, ymm1		; + ci, assign to zi
+    38                                  
+    39 0000006E C55C5CC5                	vsubps ymm8, ymm4, ymm5		; zr2 - zi2
+    40 00000072 C5BC58D0                	vaddps ymm2, ymm8, ymm0		; + cr, assign to zr
+    41                                  
+    42 00000076 C5EC59E2                	vmulps ymm4, ymm2, ymm2		; zr^2 = zr * zr
+    43 0000007A C5E459EB                	vmulps ymm5, ymm3, ymm3		; zi^2 = zi * zi
+    44                                  
+    45 0000007E C55C58C5                	vaddps ymm8, ymm4, ymm5		; ymm8 = zr^2 + zi^2
+    46 00000082 C57C1145E0              	vmovups [rbp-32], ymm8		; Save result
+    47                                  
+    48 00000087 48BB-                   	mov rbx, const_4
+    48 00000089 [4000000000000000] 
+    49 00000091 F3440F1023              	movss xmm12, [rbx]		;load up our 4
+    50                                  
+    51 00000096 41BB00000000            	mov r11, 0			;our recycle flag, if we found unset table entries
+    52                                  
+    53 0000009C 488B45A0                	mov rax, [rbp-96]
+    54 000000A0 4883F8FF                	cmp rax, -1
+    55 000000A4 751D                    	jne tag1
+    56 000000A6 49FFC3                  	inc r11
+    57 000000A9 F3440F106DE0            	movss xmm13, [rbp-32]
+    58 000000AF F3450FC2EC01            	cmpss xmm13, xmm12, 1		;less than 4?
+    59 000000B5 F3490F2DC5              	cvtss2si rax, xmm13
+    60 000000BA 4821C0                  	and rax, rax
+    61 000000BD 7504                    	jne tag1
+    62 000000BF 48894DA0                	mov [rbp-96], rcx		;save current iteration
+    63                                  tag1:
+    64 000000C3 488B45A8                	mov rax, [rbp-88]
+    65 000000C7 4883F8FF                	cmp rax, -1
+    66 000000CB 751D                    	jne tag2
+    67 000000CD 49FFC3                  	inc r11
+    68 000000D0 F3440F106DE4            	movss xmm13, [rbp-28]
+    69 000000D6 F3450FC2EC01            	cmpss xmm13, xmm12, 1		;less than 4?
+    70 000000DC F3490F2DC5              	cvtss2si rax, xmm13
+    71 000000E1 4821C0                  	and rax, rax
+    72 000000E4 7504                    	jne tag2
+    73 000000E6 48894DA8                	mov [rbp-88], rcx		;save current iteration
+    74                                  tag2:
+    75 000000EA 488B45B0                	mov rax, [rbp-80]
+    76 000000EE 4883F8FF                	cmp rax, -1
+    77 000000F2 751D                    	jne tag3
+    78 000000F4 49FFC3                  	inc r11
+    79 000000F7 F3440F106DE8            	movss xmm13, [rbp-24]
+    80 000000FD F3450FC2EC01            	cmpss xmm13, xmm12, 1		;less than 4?
+    81 00000103 F3490F2DC5              	cvtss2si rax, xmm13
+    82 00000108 4821C0                  	and rax, rax
+    83 0000010B 7504                    	jne tag3
+    84 0000010D 48894DB0                	mov [rbp-80], rcx		;save current iteration
+    85                                  tag3:
+    86 00000111 488B45B8                	mov rax, [rbp-72]
+    87 00000115 4883F8FF                	cmp rax, -1
+    88 00000119 751D                    	jne tag4
+    89 0000011B 49FFC3                  	inc r11
+    90 0000011E F3440F106DEC            	movss xmm13, [rbp-20]
+    91 00000124 F3450FC2EC01            	cmpss xmm13, xmm12, 1		;less than 4?
+    92 0000012A F3490F2DC5              	cvtss2si rax, xmm13
+    93 0000012F 4821C0                  	and rax, rax
+    94 00000132 7504                    	jne tag4
+    95 00000134 48894DB8                	mov [rbp-72], rcx		;save current iteration
+    96                                  tag4:
+    97 00000138 488B45C0                	mov rax, [rbp-64]
+    98 0000013C 4883F8FF                	cmp rax, -1
+    99 00000140 751D                    	jne tag5
+   100 00000142 49FFC3                  	inc r11
+   101 00000145 F3440F106DF0            	movss xmm13, [rbp-16]
+   102 0000014B F3450FC2EC01            	cmpss xmm13, xmm12, 1		;less than 4?
+   103 00000151 F3490F2DC5              	cvtss2si rax, xmm13
+   104 00000156 4821C0                  	and rax, rax
+   105 00000159 7504                    	jne tag5
+   106 0000015B 48894DC0                	mov [rbp-64], rcx		;save current iteration
+   107                                  tag5:
+   108 0000015F 488B45C8                	mov rax, [rbp-56]
+   109 00000163 4883F8FF                	cmp rax, -1
+   110 00000167 751D                    	jne tag6
+   111 00000169 49FFC3                  	inc r11
+   112 0000016C F3440F106DF4            	movss xmm13, [rbp-12]
+   113 00000172 F3450FC2EC01            	cmpss xmm13, xmm12, 1		;less than 4?
+   114 00000178 F3490F2DC5              	cvtss2si rax, xmm13
+   115 0000017D 4821C0                  	and rax, rax
+   116 00000180 7504                    	jne tag6
+   117 00000182 48894DC8                	mov [rbp-56], rcx		;save current iteration
+   118                                  tag6:
+   119 00000186 488B45D0                	mov rax, [rbp-48]
+   120 0000018A 4883F8FF                	cmp rax, -1
+   121 0000018E 751D                    	jne tag7
+   122 00000190 49FFC3                  	inc r11
+   123 00000193 F3440F106DF8            	movss xmm13, [rbp-8]
+   124 00000199 F3450FC2EC01            	cmpss xmm13, xmm12, 1		;less than 4?
+   125 0000019F F3490F2DC5              	cvtss2si rax, xmm13
+   126 000001A4 4821C0                  	and rax, rax
+   127 000001A7 7504                    	jne tag7
+   128 000001A9 48894DD0                	mov [rbp-48], rcx		;save current iteration
+   129                                  tag7:
+   130 000001AD 488B45D8                	mov rax, [rbp-40]
+   131 000001B1 4883F8FF                	cmp rax, -1
+   132 000001B5 751D                    	jne tagdone
+   133 000001B7 49FFC3                  	inc r11
+   134 000001BA F3440F106DFC            	movss xmm13, [rbp-4]
+   135 000001C0 F3450FC2EC01            	cmpss xmm13, xmm12, 1		;less than 4?
+   136 000001C6 F3490F2DC5              	cvtss2si rax, xmm13
+   137 000001CB 4821C0                  	and rax, rax
+   138 000001CE 7504                    	jne tagdone
+   139 000001D0 48894DD8                	mov [rbp-40], rcx		;save current iteration
+   140                                  tagdone:
+   141 000001D4 4D21DB                  	and r11, r11
+   142 000001D7 7502                    	jne recycle
+   143 000001D9 EB7C                    	jmp done
+   144                                  
+   145                                  recycle:
+   146 000001DB 48FFC1                  	inc rcx
+   147 000001DE 4C39D1                  	cmp rcx, r10			;Have we reached max_iterations yet?
+   148 000001E1 0F827BFEFFFF            	jb cycle
+   149                                  
+   150 000001E7 488B45A0                	mov rax, [rbp-96]
+   151 000001EB 4883F8FF                	cmp rax, -1
+   152 000001EF 7504                    	jne fill1
+   153 000001F1 4C8955A0                	mov [rbp-96], r10
+   154                                  fill1:
+   155 000001F5 488B45A8                	mov rax, [rbp-88]
+   156 000001F9 4883F8FF                	cmp rax, -1
+   157 000001FD 7504                    	jne fill2
+   158 000001FF 4C8955A8                	mov [rbp-88], r10
+   159                                  fill2:
+   160 00000203 488B45B0                	mov rax, [rbp-80]
+   161 00000207 4883F8FF                	cmp rax, -1
+   162 0000020B 7504                    	jne fill3
+   163 0000020D 4C8955B0                	mov [rbp-80], r10
+   164                                  fill3:
+   165 00000211 488B45B8                	mov rax, [rbp-72]
+   166 00000215 4883F8FF                	cmp rax, -1
+   167 00000219 7504                    	jne fill4
+   168 0000021B 4C8955B8                	mov [rbp-72], r10			; Fill any ones that didn't bail with max_iterations
+   169                                  fill4:
+   170 0000021F 488B45C0                	mov rax, [rbp-64]
+   171 00000223 4883F8FF                	cmp rax, -1
+   172 00000227 7504                    	jne fill5
+   173 00000229 4C8955C0                	mov [rbp-64], r10
+   174                                  fill5:
+   175 0000022D 488B45C8                	mov rax, [rbp-56]
+   176 00000231 4883F8FF                	cmp rax, -1
+   177 00000235 7504                    	jne fill6
+   178 00000237 4C8955C8                	mov [rbp-56], r10
+   179                                  fill6:
+   180 0000023B 488B45D0                	mov rax, [rbp-48]
+   181 0000023F 4883F8FF                	cmp rax, -1
+   182 00000243 7504                    	jne fill7
+   183 00000245 4C8955D0                	mov [rbp-48], r10
+   184                                  fill7:
+   185 00000249 488B45D8                	mov rax, [rbp-40]
+   186 0000024D 4883F8FF                	cmp rax, -1
+   187 00000251 7504                    	jne done
+   188 00000253 4C8955D8                	mov [rbp-40], r10
+   189                                  
+   190                                  done:
+   191 00000257 4C89E7                  	mov rdi, r12			;get our pointer to table to fill
+   192 0000025A 4889EE                  	mov rsi, rbp
+   193 0000025D 4883EE60                	sub rsi, 96
+   194 00000261 B908000000              	mov rcx, 8
+   195 00000266 F348A5                  	rep movsq			;Move our iteration table into destination
+   196                                  
+   197 00000269 4883C460                	add rsp, 96
+   198 0000026D 5D                      	pop rbp
+   199 0000026E 5B                      	pop rbx
+   200 0000026F C3                      	ret
+   201                                  
+   202                                  	section .data
+   203                                  
+   204                                  	align 32
+   205                                  
+   206                                  const_0:
+   207 00000000 00000000                	dd 0.0
+   208 00000004 00000000                	dd 0.0
+   209 00000008 00000000                	dd 0.0
+   210 0000000C 00000000                	dd 0.0
+   211 00000010 00000000                	dd 0.0
+   212 00000014 00000000                	dd 0.0
+   213 00000018 00000000                	dd 0.0
+   214 0000001C 00000000                	dd 0.0
+   215                                  
+   216                                  const_2:
+   217 00000020 00000040                	dd 2.0
+   218 00000024 00000040                	dd 2.0
+   219 00000028 00000040                	dd 2.0
+   220 0000002C 00000040                	dd 2.0
+   221 00000030 00000040                	dd 2.0
+   222 00000034 00000040                	dd 2.0
+   223 00000038 00000040                	dd 2.0
+   224 0000003C 00000040                	dd 2.0
+   225                                  
+   226                                  const_4:
+   227 00000040 00008040                	dd 4.0
+   228                                  
