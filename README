@@ -31,3 +31,6 @@ Scroll wheel to zoom in and out.
 If you zoomed in somewhere and the calculation gets intensive, be patient.
 Smaller window sizes == faster speed.
 
+This is not the most efficient Mandelbrot algorithm, but then again,
+generating fractals is not really the point of this program.
+
